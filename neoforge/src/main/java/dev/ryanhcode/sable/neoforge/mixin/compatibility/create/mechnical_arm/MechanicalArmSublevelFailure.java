@@ -42,10 +42,10 @@ public class MechanicalArmSublevelFailure {
 		if (pointsRemovedSublevel.get() == 0) {
 			instance.translate(langKey, args);
 		} else if (arg - pointsRemovedSublevel.get() == 0) {
-			errorComponent = Component.translatable("sable.create.remove.points_removed_sublevel", removed)
+			errorComponent = Component.translatable("sable.create.mechanical_arm.points_removed_distant_sublevel", removed)
 					.withStyle(ChatFormatting.RED);
 		} else {
-			errorComponent = Component.translatable("sable.create.mechanical_arm.points_removed_sublevel_and_range", removed)
+			errorComponent = Component.translatable("sable.create.mechanical_arm.points_removed_distant_sublevel_and_range", removed)
 					.withStyle(ChatFormatting.RED);
 		}
 

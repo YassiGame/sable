@@ -143,6 +143,6 @@
 
   "death.attack.fall.from_sublevel": "%1$s fell from %2$s",
 
-  "sable.create.mechanical_arm.points_removed_sublevel_and_range": "%1$s selected interaction point(s) removed due to range limitations or not being anchored.",
-  "sable.create.remove.points_removed_sublevel" : "%1$s selected interaction point(s) removed due to not being anchored"
+  "sable.create.mechanical_arm.points_removed_distant_sublevel_and_range": "%1$s selected interaction point(s) removed because they are out of range or on a sub-level too far away to be reached by the arm.",
+  "sable.create.mechanical_arm.points_removed_distant_sublevel": "%1$s selected interaction point(s) removed because their sub-level is too far away to be reached by the arm."
 }
