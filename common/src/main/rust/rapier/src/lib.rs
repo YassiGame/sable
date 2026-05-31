@@ -420,15 +420,47 @@ pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_ini
     info!("Rapier initialized scene {}", scene_id);
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_dispose<'local>(
+    _env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    scene_id: jint,
+) {
+    unsafe {
+        if let Some(state) = &mut PHYSICS_STATE {
+            state.scenes.remove(&scene_id);
+        }
+    }
+}
+
 /// Computes buoyancy
+/// Extracts a message from a caught panic payload
+fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        s.to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "unknown panic".to_string()
+    }
+}
+
+/// Catches a panic and throws a JVM RuntimeException with the panic message
+fn throw_on_panic(env: &mut JNIEnv, result: Result<(), Box<dyn std::any::Any + Send>>) {
+    if let Err(payload) = result {
+        let msg = format!("Rapier native panic: {}", panic_message(&payload));
+        let _ = env.throw_new("java/lang/RuntimeException", &msg);
+    }
+}
+
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_tick<'local>(
-    _env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     scene_id: jint,
     _time_step: jdouble,
 ) {
-    unsafe {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
         if let Some(state) = &mut PHYSICS_STATE {
             rope::tick(scene_id);
             joints::tick(scene_id);
@@ -439,13 +471,14 @@ pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_tic
 
             compute_buoyancy(scene);
         }
-    }
+    }));
+    throw_on_panic(&mut env, result);
 }
 
 /// Steps physics
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_step<'local>(
-    _env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     scene_id: jint,
     time_step: jdouble,
@@ -463,20 +496,23 @@ pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_ste
 
             scene.manifold_info_map = SableManifoldInfoMap::default();
 
-            scene.pipeline.step(
-                scene.gravity,
-                &state.integration_parameters,
-                &mut scene.island_manager,
-                &mut scene.broad_phase,
-                &mut scene.narrow_phase,
-                &mut scene.rigid_body_set,
-                &mut scene.collider_set,
-                &mut scene.impulse_joint_set,
-                &mut scene.multibody_joint_set,
-                &mut scene.ccd_solver,
-                &scene.physics_hooks,
-                &scene.event_handler,
-            );
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                scene.pipeline.step(
+                    scene.gravity,
+                    &state.integration_parameters,
+                    &mut scene.island_manager,
+                    &mut scene.broad_phase,
+                    &mut scene.narrow_phase,
+                    &mut scene.rigid_body_set,
+                    &mut scene.collider_set,
+                    &mut scene.impulse_joint_set,
+                    &mut scene.multibody_joint_set,
+                    &mut scene.ccd_solver,
+                    &scene.physics_hooks,
+                    &scene.event_handler,
+                );
+            }));
+            throw_on_panic(&mut env, result);
         }
     }
 }
